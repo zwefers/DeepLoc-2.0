@@ -90,7 +90,7 @@ def get_optimal_threshold_pr(output_df, data_df, num_classes):
 
     return optimal_thresholds
 
-def get_optimal_threshold_mcc(output_df, data_df):
+def get_optimal_threshold_mcc(output_df, data_df, num_classes):
     test_df = data_df.merge(output_df)
     
     predictions = np.stack(test_df["preds"].to_numpy())
