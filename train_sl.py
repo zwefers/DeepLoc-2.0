@@ -86,7 +86,25 @@ if __name__ == "__main__":
         data_df=None
 
 
-    model_attrs = get_train_model_attributes(model_type=args.model, num_classes=num_classes)
+    #TODO: Let the clip_len be variable
+    CLIP_LEN=4000
+    #CLIP sequences in metadata
+    def clip(seq, clip_len):
+        assert clip_len % 2 == 0
+        if len(seq) > clip_len:
+            seq = seq[ : clip_len//2] + seq[-clip_len//2 : ]
+        return seq
+    if data_df is not None:
+        data_df.Sequence = data_df.Sequence.apply(lambda seq: clip(seq, CLIP_LEN))
+
+
+    #SET pos_weights
+    if args.level==0: # pos_weights defined by deeploc
+        pos_weights = None
+    else:
+        pos_weights = 1/(torch.tensor(data_df.Target.to_list(), dtype=torch.float32).mean(axis=0)+ 1e-5)
+
+    model_attrs = get_train_model_attributes(model_type=args.model, num_classes=num_classes, pos_weights=pos_weights)
     if not os.path.exists(model_attrs.embedding_file):
         print("Embeddings not found, generating......")
         generate_embeddings(model_attrs)
@@ -96,22 +114,6 @@ if __name__ == "__main__":
     
     if not os.path.exists(model_attrs.embedding_file):
         raise Exception("Embeddings could not be created. Verify that data_files/embeddings/<MODEL_DATASET> is deleted")
-
-
-    #CLIP sequences in metadata
-    def clip(seq, clip_len):
-        assert clip_len % 2 == 0
-        if len(seq) > clip_len:
-            seq = seq[ : clip_len//2] + seq[-clip_len//2 : ]
-        return seq
-    if data_df is not None:
-        data_df.Sequence = data_df.Sequence.apply(lambda seq: clip(seq, model_attrs.clip_len))
-
-    #SET pos_weights
-    if args.level==0: # pos_weights defined by deeploc
-        pos_weights = torch.tensor([1,1,1,3,2.3,4,9.5,4.5,6.6,7.7,32])
-    else:
-        pos_weights = 1/(torch.tensor(data_df.Target.to_list(), dtype=torch.float32).mean(axis=0)+ 1e-5)
     
 
     datahandler = DataloaderHandler(

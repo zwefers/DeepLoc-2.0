@@ -3,6 +3,7 @@ from src.data import DataloaderHandler
 import pickle
 from transformers import T5EncoderModel, T5Tokenizer, logging
 import os
+import torch
 class ModelAttributes:
     def __init__(self, 
                  model_type: str,
@@ -13,7 +14,8 @@ class ModelAttributes:
                  outputs_save_path: str,
                  clip_len: int,
                  embed_len: int,
-                 num_classes: int) -> None:
+                 num_classes: int,
+                 pos_weights=None) -> None:
         self.model_type = model_type
         self.class_type = class_type 
         self.alphabet = alphabet
@@ -32,9 +34,10 @@ class ModelAttributes:
         self.clip_len = clip_len
         self.embed_len = embed_len
         self.num_classes = num_classes
+        self.pos_weights=pos_weights
         
 
-def get_train_model_attributes(model_type, num_classes):
+def get_train_model_attributes(model_type, num_classes, pos_weights=None):
     if model_type == FAST:
         with open("models/ESM1b_alphabet.pkl", "rb") as f:
             alphabet = pickle.load(f)
@@ -47,7 +50,8 @@ def get_train_model_attributes(model_type, num_classes):
             "outputs/esm1b/",
             1022,
             1280,
-            num_classes
+            num_classes,
+            torch.tensor([1,1,1,3,2.3,4,9.5,4.5,6.6,7.7,32])
         )
     elif model_type == ACCURATE:
         alphabet = T5Tokenizer.from_pretrained("Rostlab/prot_t5_xl_uniref50", do_lower_case=False )
@@ -61,7 +65,8 @@ def get_train_model_attributes(model_type, num_classes):
             "outputs/prott5/",
             4000,
             1024,
-            num_classes
+            num_classes,
+            torch.tensor([1,1,1,3,2.3,4,9.5,4.5,6.6,7.7,32])
         )
     elif model_type == SEQ2LOC:
         alphabet = T5Tokenizer.from_pretrained("Rostlab/prot_t5_xl_uniref50", do_lower_case=False )
@@ -75,7 +80,8 @@ def get_train_model_attributes(model_type, num_classes):
             "outputs/seq2locbench/",
             4000,
             1024,
-            num_classes
+            num_classes,
+            pos_weights
         )
     else:
         raise Exception("wrong model type provided expected Fast,Accurate got", model_type)

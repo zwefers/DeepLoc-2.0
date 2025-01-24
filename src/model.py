@@ -60,6 +60,7 @@ class BaseModel(pl.LightningModule):
         self.clf_head = nn.Linear(256, num_classes)#zoe
         self.kld = nn.KLDivLoss(reduction="batchmean")
         self.lr = 1e-3
+        self.num_classes = num_classes
         self.pos_weights = pos_weights
 
     def forward(self, embedding, lens, non_mask):
