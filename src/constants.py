@@ -4,6 +4,7 @@ SS_CATEGORIES = ["NULL", "SP", "TM", "MT", "CH", "TH", "NLS", "NES", "PTS", "GPI
 
 FAST = "Fast"
 ACCURATE = "Accurate"
+SEQ2LOC = "seq2loc"
 
 EMBEDDINGS = {
     FAST: {
@@ -15,6 +16,11 @@ EMBEDDINGS = {
         "embeds": "data_files/embeddings/prott5_swissprot.h5",
         "config": "swissprot_prott5.yaml",
         "source_fasta": "data_files/deeploc_swissprot_clipped4k.fasta"
+    },
+    SEQ2LOC: {
+        "embeds": "/scratch/groups/emmalu/seq2loc/embeddings/ProtT5-4k.h5", #"data_files/embeddings/prott5_swissprot.h5", #zoe
+        "config": "swissprot_prott5.yaml",
+        "source_fasta": "" #not use anymor
     }
 }
 

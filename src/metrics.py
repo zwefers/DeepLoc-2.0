@@ -61,28 +61,28 @@ def get_best_threshold_mcc(y_true, y_prob):
     # plt.plot(mccs)
     return best_proba
 
-def get_optimal_threshold(output_df, data_df):
+def get_optimal_threshold(output_df, data_df, num_classes): #zoe
     test_df = data_df.merge(output_df)
     
     predictions = np.stack(test_df["preds"].to_numpy())
     actuals = np.stack(test_df["Target"].to_numpy())
     
-    optimal_thresholds = np.zeros((11,))
-    for i in range(11):
+    optimal_thresholds = np.zeros((num_classes,)) #zoe
+    for i in range(num_classes): #zoe
         fpr, tpr, thresholds = metrics.roc_curve(actuals[:, i], predictions[:, i])
         optimal_idx = np.argmax(tpr - fpr)
         optimal_thresholds[i] = thresholds[optimal_idx]
 
     return optimal_thresholds
 
-def get_optimal_threshold_pr(output_df, data_df):
+def get_optimal_threshold_pr(output_df, data_df, num_classes):
     test_df = data_df.merge(output_df)
     
     predictions = np.stack(test_df["preds"].to_numpy())
     actuals = np.stack(test_df["Target"].to_numpy())
     
-    optimal_thresholds = np.zeros((11,))
-    for i in range(11):
+    optimal_thresholds = np.zeros((num_classes,))
+    for i in range(num_classes):
         pr, re, thresholds = metrics.precision_recall_curve(actuals[:, i], predictions[:, i])
         fscores = (2 * pr * re) / (pr + re)
         optimal_idx = np.argmax(fscores)
@@ -96,8 +96,8 @@ def get_optimal_threshold_mcc(output_df, data_df):
     predictions = np.stack(test_df["preds"].to_numpy())
     actuals = np.stack(test_df["Target"].to_numpy())
     
-    optimal_thresholds = np.zeros((11,))
-    for i in range(11):
+    optimal_thresholds = np.zeros((num_classes,))
+    for i in range(num_classes):
         optimal_thresholds[i] = get_best_threshold_mcc(actuals[:, i], predictions[:, i])
 
     return optimal_thresholds

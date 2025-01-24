@@ -49,6 +49,7 @@ def generate_sl_outputs(
         inner_i="1Layer", 
         reuse=False):
     
+    num_classes=datahandler.num_classes
     threshold_dict = {}
         
     for outer_i in range(5):
@@ -63,11 +64,11 @@ def generate_sl_outputs(
             pred_df = pd.read_pickle(os.path.join(model_attrs.outputs_save_path, f"inner_{outer_i}_{inner_i}.pkl"))
 
         if thresh_type == "roc":
-            thresholds = get_optimal_threshold(pred_df, data_df)
+            thresholds = get_optimal_threshold(pred_df, data_df, num_classes)
         elif thresh_type == "pr":
-            thresholds = get_optimal_threshold_pr(pred_df, data_df)
+            thresholds = get_optimal_threshold_pr(pred_df, data_df, num_classes)
         else:
-            thresholds = get_optimal_threshold_mcc(pred_df, data_df)
+            thresholds = get_optimal_threshold_mcc(pred_df, data_df, num_classes)
         threshold_dict[f"{outer_i}_{inner_i}"] = thresholds
         
         if not os.path.exists(os.path.join(model_attrs.outputs_save_path, f"{outer_i}_{inner_i}.pkl")):

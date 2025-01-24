@@ -7,9 +7,11 @@ from .attr_prior import *
 from src.constants import *
 
 
-pos_weights_bce = torch.tensor([1,1,1,3,2.3,4,9.5,4.5,6.6,7.7,32])
-def focal_loss(input, target, gamma=1):
-    bceloss = F.binary_cross_entropy_with_logits(input, target, pos_weight=pos_weights_bce.to(input.device), reduction="none")
+#pos_weights_bce = torch.tensor([1,1,1,3,2.3,4,9.5,4.5,6.6,7.7,32])
+def focal_loss(input, target, gamma=1, pos_weights_bce=None):
+    if pos_weights_bce != None:
+        pos_weights_bce.to(input.device)
+    bceloss = F.binary_cross_entropy_with_logits(input, target, pos_weight=pos_weights_bce, reduction="none")
     logpt = -F.binary_cross_entropy_with_logits(input, target, reduction="none")
     pt = torch.exp(logpt)
     # compute the loss
@@ -49,15 +51,16 @@ class AttentionHead(nn.Module):
           return x, attns.squeeze(2)
 
 class BaseModel(pl.LightningModule):
-    def __init__(self, embed_dim) -> None:
+    def __init__(self, embed_dim, num_classes, pos_weights=None) -> None:
         super().__init__()
        
         self.initial_ln = nn.LayerNorm(embed_dim)
         self.lin = nn.Linear(embed_dim, 256)
         self.attn_head = AttentionHead(256, 1)
-        self.clf_head = nn.Linear(256, 11)
+        self.clf_head = nn.Linear(256, num_classes)#zoe
         self.kld = nn.KLDivLoss(reduction="batchmean")
         self.lr = 1e-3
+        self.pos_weights = pos_weights
 
     def forward(self, embedding, lens, non_mask):
         x = self.initial_ln(embedding)
@@ -114,10 +117,11 @@ class BaseModel(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         #self.unfreeze()
+        #x=embedding, l=lengths, n=masks, y=targets, y_tags=target_annots, labels
         x, l, n, y, y_tags, _ = batch
         y_pred, y_attns =  self.forward(x, l, n)
         reg_loss, seq_loss, seq_count = self.attn_reg_loss(y, y_attns, y_tags, l, n)
-        bce_loss = focal_loss(y_pred, y)
+        bce_loss = focal_loss(y_pred, y, pos_weights_bce=self.pos_weights)
         loss = bce_loss + SUP_LOSS_MULT * seq_loss + REG_LOSS_MULT * reg_loss
         self.log('train_loss_batch', loss, on_epoch=True)
         return {'loss': loss}
@@ -127,7 +131,7 @@ class BaseModel(pl.LightningModule):
         x, l, n, y, y_tags, _ = batch
         y_pred, y_attns =  self.forward(x, l, n)
         reg_loss, seq_loss, seq_count = self.attn_reg_loss(y, y_attns, y_tags, l, n)
-        bce_loss = focal_loss(y_pred, y)
+        bce_loss = focal_loss(y_pred, y, pos_weights_bce=self.pos_weights)
         loss = bce_loss + SUP_LOSS_MULT * seq_loss + REG_LOSS_MULT * reg_loss
         self.log('val_loss_batch', loss, on_epoch=True)
         self.log('bce_loss', bce_loss, on_epoch=True)
@@ -139,12 +143,12 @@ class BaseModel(pl.LightningModule):
     
 
 class ProtT5Frozen(BaseModel):
-    def __init__(self):
-        super().__init__(1024)
+    def __init__(self, num_classes, pos_weights=None): #zoe
+        super().__init__(1024, num_classes, pos_weights=pos_weights)
 
 class ESM1bFrozen(BaseModel):
-    def __init__(self):
-        super().__init__(1280)
+    def __init__(self, num_classes, pos_weights=None): #zoe
+        super().__init__(1280, num_classes, pos_weights=pos_weights)
         
 
 pos_weights_annot = torch.tensor([0.23, 0.92, 0.98, 2.63, 5.64, 1.60, 2.37, 1.87, 2.03])

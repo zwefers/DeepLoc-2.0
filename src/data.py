@@ -131,13 +131,15 @@ def read_fasta(fastafile):
 
 import h5py
 import numpy as np
-import pickle5
+import pickle5 #used to be pickle5
 from sklearn.model_selection import ShuffleSplit
 from src.constants import *
 
-def get_swissprot_df(clip_len):  
+def get_swissprot_df(clip_len): 
+    
     with open(SIGNAL_DATA, "rb") as f:
         annot_df = pickle5.load(f)
+    #annot_df = pd.read_csv(SIGNAL_DATA.split(".")[0]+".csv")
     nes_exclude_list = ['Q7TPV4','P47973','P38398','P38861','Q16665','O15392','Q9Y8G3','O14746','P13350','Q06142']
     swissprot_exclusion_list = ['Q04656-5','O43157','Q9UPN3-2']
     def clip_middle_np(x):
@@ -232,6 +234,7 @@ class EmbeddingsLocalizationDataset(torch.utils.data.Dataset):
     
     def __getitem__(self, index: int):
         embedding = np.array(self.embeddings_file[self.data_df["ACC"][index]]).copy()
+        #TODO: clip embedding?????
         return self.data_df["Sequence"][index], embedding, self.data_df["Target"][index], self.data_df["TargetAnnot"][index], self.data_df["ACC"][index]
     
     def get_batch_indices(self, toks_per_batch, max_batch_size, extra_toks_per_seq=0):
@@ -271,9 +274,11 @@ class TrainBatchConverter(object):
     processed (labels + tensor) batch.
     """
 
-    def __init__(self, alphabet, embed_len):
+    def __init__(self, alphabet, embed_len, num_classes):
         self.alphabet = alphabet
         self.embed_len = embed_len
+        self.num_classes = num_classes
+
 
     def __call__(self, raw_batch):
         batch_size = len(raw_batch)
@@ -284,7 +289,7 @@ class TrainBatchConverter(object):
         labels = []
         lengths = []
         strs = []
-        targets = torch.zeros((batch_size, 11), dtype=torch.float32)
+        targets = torch.zeros((batch_size, self.num_classes), dtype=torch.float32) #zoe
         for i, (seq_str, embedding, target, target_annot, label) in enumerate(raw_batch):
             #seq_str = seq_str[1:]
             labels.append(label)
@@ -312,15 +317,22 @@ class SignalTypeDataset(torch.utils.data.Dataset):
 
 
 class DataloaderHandler:
-    def __init__(self, clip_len, alphabet, embedding_file, embed_len) -> None:
+    def __init__(self, clip_len, alphabet, embedding_file, embed_len, num_classes, metadata=None) -> None:
         self.clip_len = clip_len
         self.alphabet = alphabet
         self.embedding_file = embedding_file
         self.embed_len = embed_len
+        self.num_classes = num_classes
+        self.metadata = metadata
 
-    def get_train_val_dataloaders(self, outer_i):
-        data_df = get_swissprot_df(self.clip_len)
-        
+    def get_train_val_dataloaders(self, outer_i, df=None):
+        #data_df = get_swissprot_df(self.clip_len)
+        if self.metadata is None:
+            data_df = get_swissprot_df(self.clip_len) 
+        else:
+            #TODO: deal with clip length
+            data_df= self.metadata
+
         train_df = data_df[data_df.Partition != outer_i].reset_index(drop=True)
 
         X = np.stack(train_df["ACC"].to_numpy())
@@ -335,35 +347,51 @@ class DataloaderHandler:
         embedding_file = h5py.File(self.embedding_file, "r")
         train_dataset = EmbeddingsLocalizationDataset(embedding_file, split_train_df)
         train_batches = train_dataset.get_batch_indices(4096*4, BATCH_SIZE, extra_toks_per_seq=0)
-        train_dataloader = torch.utils.data.DataLoader(train_dataset, collate_fn=TrainBatchConverter(self.alphabet, self.embed_len), batch_sampler=train_batches)
+        train_dataloader = torch.utils.data.DataLoader(train_dataset, collate_fn=TrainBatchConverter(self.alphabet, self.embed_len, self.num_classes), batch_sampler=train_batches) #zoe
 
         val_dataset = EmbeddingsLocalizationDataset(embedding_file, split_val_df)
         val_batches = val_dataset.get_batch_indices(4096*4, BATCH_SIZE, extra_toks_per_seq=0)
-        val_dataloader = torch.utils.data.DataLoader(val_dataset, collate_fn=TrainBatchConverter(self.alphabet, self.embed_len), batch_sampler=val_batches)
+        val_dataloader = torch.utils.data.DataLoader(val_dataset, collate_fn=TrainBatchConverter(self.alphabet, self.embed_len, self.num_classes), batch_sampler=val_batches) #zoe
         return train_dataloader, val_dataloader
 
     def get_partition(self, outer_i):
-        data_df = get_swissprot_df(self.clip_len )
+        #data_df = get_swissprot_df(self.clip_len)
+        if self.metadata is None:
+            data_df = get_swissprot_df(self.clip_len) 
+        else:
+            #TODO: deal with clip length
+            data_df= self.metadata
+
         test_df = data_df[data_df.Partition == outer_i].reset_index(drop=True)
         return test_df
 
     def get_partition_dataloader(self, outer_i):
-        data_df = get_swissprot_df(self.clip_len)
+        #data_df = get_swissprot_df(self.clip_len)
+        if self.metadata is None:
+            data_df = get_swissprot_df(self.clip_len) 
+        else:
+            data_df= self.metadata
+
         test_df = data_df[data_df.Partition == outer_i].reset_index(drop=True)
         
         embedding_file = h5py.File(self.embedding_file, "r")
         test_dataset = EmbeddingsLocalizationDataset(embedding_file, test_df)
         test_batches = test_dataset.get_batch_indices(4096*4, BATCH_SIZE, extra_toks_per_seq=0)
-        test_dataloader = torch.utils.data.DataLoader(test_dataset, collate_fn=TrainBatchConverter(self.alphabet, self.embed_len), batch_sampler=test_batches)
+        test_dataloader = torch.utils.data.DataLoader(test_dataset, collate_fn=TrainBatchConverter(self.alphabet, self.embed_len, self.num_classes), batch_sampler=test_batches) #zoe
         return test_dataloader, test_df
 
     def get_partition_dataloader_inner(self, partition_i):
-        data_df = get_swissprot_df(self.clip_len)
+        #data_df = get_swissprot_df(self.clip_len)
+        if self.metadata is None:
+            data_df = get_swissprot_df(self.clip_len) 
+        else:
+            #TODO: deal with clip length
+            data_df= self.metadata
         test_df = data_df[data_df.Partition != partition_i].reset_index(drop=True)
         embedding_file = h5py.File(self.embedding_file, "r")
         test_dataset = EmbeddingsLocalizationDataset(embedding_file, test_df)
         test_batches = test_dataset.get_batch_indices(4096*4, BATCH_SIZE, extra_toks_per_seq=0)
-        test_dataloader = torch.utils.data.DataLoader(test_dataset, collate_fn=TrainBatchConverter(self.alphabet, self.embed_len), batch_sampler=test_batches)
+        test_dataloader = torch.utils.data.DataLoader(test_dataset, collate_fn=TrainBatchConverter(self.alphabet, self.embed_len, self.num_classes), batch_sampler=test_batches) #zoe
 
         return test_dataloader, test_df
     

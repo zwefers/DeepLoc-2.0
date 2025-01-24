@@ -59,6 +59,19 @@ def get_train_model_attributes(model_type):
             4000,
             1024
         )
+    elif model_type == SEQ2LOC:
+        alphabet = T5Tokenizer.from_pretrained("Rostlab/prot_t5_xl_uniref50", do_lower_case=False )
+        
+        return ModelAttributes(
+            model_type,
+            ProtT5Frozen,
+            alphabet,
+            EMBEDDINGS[SEQ2LOC]["embeds"],            
+            "models/seq2locbench",
+            "outputs/seq2locbench/",
+            4000,
+            1024
+        )
     else:
         raise Exception("wrong model type provided expected Fast,Accurate got", model_type)
     
