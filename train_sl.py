@@ -45,7 +45,7 @@ def train_model(model_attrs: ModelAttributes, datahandler:DataloaderHandler, out
                         ],
                         precision=16,
                         accelerator="auto")
-    clf = model_attrs.class_type(num_classes, pos_weights=pos_weights) #zoe (get this from DataloaderHandler?)
+    clf = model_attrs.class_type(model_attrs.num_classes, pos_weights=pos_weights) #zoe (get this from DataloaderHandler?)
     trainer.fit(clf, train_dataloader, val_dataloader)
     return trainer
 
@@ -86,7 +86,7 @@ if __name__ == "__main__":
         data_df=None
 
 
-    model_attrs = get_train_model_attributes(model_type=args.model)
+    model_attrs = get_train_model_attributes(model_type=args.model, num_classes=num_classes)
     if not os.path.exists(model_attrs.embedding_file):
         print("Embeddings not found, generating......")
         generate_embeddings(model_attrs)
