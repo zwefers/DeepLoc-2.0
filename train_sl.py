@@ -55,14 +55,14 @@ def make_DL2_df(original_csv, level, categories):
 
 
 
-def train_model(model_attrs: ModelAttributes, datahandler:DataloaderHandler, outer_i: int, pos_weights: torch.tensor):
+def train_model(modelname:str, model_attrs: ModelAttributes, datahandler:DataloaderHandler, outer_i: int, pos_weights: torch.tensor):
     train_dataloader, val_dataloader = datahandler.get_train_val_dataloaders(outer_i)
     num_classes = datahandler.num_classes #zoe
 
     checkpoint_callback = ModelCheckpoint(
         monitor='bce_loss',
         dirpath=model_attrs.save_path,
-        filename= f"{outer_i}_1Layer",
+        filename= modelname,
         save_top_k=1,
         every_n_epochs=1,
         save_last=False,
@@ -119,13 +119,17 @@ if __name__ == "__main__":
 
     CATEGORIES_YAML = load_config("data_files/seq2loc/level_classes.yaml")
     categories = CATEGORIES_YAML[f"level{args.level}"]
-    data_df = make_DL2_df(args.dataset, args.level, categories)
     data_codes = {"hpa_trainset.csv": "hpa",
                   "uniprot_trainset.csv": "uniprot",
                   "hpa_uniprot_combined_human_trainset.csv": "combined_human",
                   "hpa_uniprot_combined_trainset.csv": "combined"}
-    data_code = data_codes[args.dataset.split("/")[-1]]
-
+    if len(args.dataset) == 0:
+        data_df=None
+        data_code = "orig"
+    else:
+        data_df = make_DL2_df(args.dataset, args.level, categories)
+        data_code = data_codes[args.dataset.split("/")[-1]]
+    
 
     level_numclasses = {0:11, 1:21, 2:10, 3:8}
     num_classes = level_numclasses[args.level]
@@ -145,8 +149,6 @@ if __name__ == "__main__":
         data_df.Sequence = data_df.Sequence.apply(lambda seq: clip(seq, CLIP_LEN))
     
     
-
-
     #SET pos_weights
     if args.level==0: # pos_weights defined by deeploc
         pos_weights = None
@@ -177,9 +179,9 @@ if __name__ == "__main__":
     print("Training subcellular localization models")
     for i in range(0, 5):
         print(f"Training model {i+1} / 5")
-        modelname = ""
-        if not os.path.exists(os.path.join(model_attrs.save_path, f"{i}_1Layer_{data_code}_level{args.level}.ckpt")):
-            train_model(model_attrs, datahandler, i, pos_weights)
+        modelname = os.path.join(model_attrs.save_path, f"{i}_1Layer_{data_code}_level{args.level}.ckpt")
+        if not os.path.exists(modelname):
+            train_model(modelname, model_attrs, datahandler, i, pos_weights)
     print("Finished training subcellular localization models")
 
     print("Using trained models to generate outputs for signal prediction training")
