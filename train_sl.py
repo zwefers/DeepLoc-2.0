@@ -22,11 +22,11 @@ def load_config(config_path):
         config = yaml.safe_load(file)
     return config
 
-def make_DL2_df(original_csv, categories):
+def make_DL2_df(original_csv, level, categories):
     df = pd.read_csv(original_csv)
     one_hot = []
     targets = []
-    for locs in df[f"level{LEVEL}"].str.split(";").to_list():
+    for locs in df[f"level{level}"].str.split(";").to_list():
         temp = [1 if loc in locs else 0 for loc in categories]
         one_hot.append([1 if loc in locs else 0 for loc in categories])
         targets.append(temp)
@@ -117,9 +117,9 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    CATEGORIES_YAML = load_config("../metadata/level_classes.yaml")
+    CATEGORIES_YAML = load_config("data_files/seq2loc/level_classes.yaml")
     categories = CATEGORIES_YAML[f"level{args.level}"]
-    data_df = make_DL2_df(args.dataset, categories)
+    data_df = make_DL2_df(args.dataset, args.level, categories)
     data_codes = {"hpa_trainset.csv": "hpa",
                   "uniprot_trainset.csv": "uniprot",
                   "hpa_uniprot_combined_human_trainset.csv": "combined_human",
@@ -129,10 +129,7 @@ if __name__ == "__main__":
 
     level_numclasses = {0:11, 1:21, 2:10, 3:8}
     num_classes = level_numclasses[args.level]
-    if len(args.data) != 0:
-        #data_df = pd.read_csv(args.data)
-        data_df.Target = data_df.Target.apply(ast.literal_eval)
-    else:
+    if len(args.dataset) == 0:
         data_df=None
 
 
