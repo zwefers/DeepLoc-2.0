@@ -10,10 +10,50 @@ import subprocess
 import os
 import warnings
 import ast
+import pandas as pd
+import yaml
 
 warnings.filterwarnings(
     "ignore", ".*Trying to infer the `batch_size` from an ambiguous collection.*"
 )
+
+def load_config(config_path):
+    with open(config_path, 'r') as file:
+        config = yaml.safe_load(file)
+    return config
+
+def make_DL2_df(original_csv, categories):
+    df = pd.read_csv(original_csv)
+    one_hot = []
+    targets = []
+    for locs in df[f"level{LEVEL}"].str.split(";").to_list():
+        temp = [1 if loc in locs else 0 for loc in categories]
+        one_hot.append([1 if loc in locs else 0 for loc in categories])
+        targets.append(temp)
+    one_hot = np.array(one_hot)
+    DL2_df = pd.DataFrame(one_hot, columns=categories)
+    if "sequence" in df.columns:
+        DL2_df["Sequence"] = df["sequence"]
+    elif "Sequence" in df.columns:
+        DL2_df["Sequence"] = df["Sequence"]
+    else: Exception("No seq col in dataframe")
+    if "ensembl_ids" in df.columns:
+        acc = "ensembl_ids"
+    elif "id" in df.columns:
+        acc = "id"
+    elif "uniprot_id" in df.columns:
+        acc = "uniprot_id"
+    else: raise Exception("No id col in dataframe")
+    DL2_df.insert(0,'ACC','')
+    DL2_df["ACC"] = df[acc] 
+    DL2_df["Partition"] = df["fold"] 
+    DL2_df["Target"] = targets
+    DL2_df["ANNOT"] = pd.NA
+    DL2_df["Types"] = pd.NA
+    DL2_df["TargetAnnot"] = 0
+    return DL2_df
+
+
 
 def train_model(model_attrs: ModelAttributes, datahandler:DataloaderHandler, outer_i: int, pos_weights: torch.tensor):
     train_dataloader, val_dataloader = datahandler.get_train_val_dataloaders(outer_i)
@@ -69,7 +109,7 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "-d","--data",
+        "-d","--dataset",
         default="",
         type=str,
         help="training data csv"
@@ -77,10 +117,20 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    CATEGORIES_YAML = load_config("../metadata/level_classes.yaml")
+    categories = CATEGORIES_YAML[f"level{args.level}"]
+    data_df = make_DL2_df(args.dataset, categories)
+    data_codes = {"hpa_trainset.csv": "hpa",
+                  "uniprot_trainset.csv": "uniprot",
+                  "hpa_uniprot_combined_human_trainset.csv": "combined_human",
+                  "hpa_uniprot_combined_trainset.csv": "combined"}
+    data_code = data_codes[args.dataset.split("/")[-1]]
+
+
     level_numclasses = {0:11, 1:21, 2:10, 3:8}
     num_classes = level_numclasses[args.level]
     if len(args.data) != 0:
-        data_df = pd.read_csv(args.data)
+        #data_df = pd.read_csv(args.data)
         data_df.Target = data_df.Target.apply(ast.literal_eval)
     else:
         data_df=None
@@ -88,14 +138,16 @@ if __name__ == "__main__":
 
     #TODO: Let the clip_len be variable
     CLIP_LEN=4000
-    #CLIP sequences in metadata
     def clip(seq, clip_len):
         assert clip_len % 2 == 0
         if len(seq) > clip_len:
             seq = seq[ : clip_len//2] + seq[-clip_len//2 : ]
         return seq
+    #CLIP sequences in metadata
     if data_df is not None:
         data_df.Sequence = data_df.Sequence.apply(lambda seq: clip(seq, CLIP_LEN))
+    
+    
 
 
     #SET pos_weights
@@ -115,7 +167,6 @@ if __name__ == "__main__":
     if not os.path.exists(model_attrs.embedding_file):
         raise Exception("Embeddings could not be created. Verify that data_files/embeddings/<MODEL_DATASET> is deleted")
     
-
     datahandler = DataloaderHandler(
         clip_len=model_attrs.clip_len, 
         alphabet=model_attrs.alphabet, 
@@ -129,7 +180,8 @@ if __name__ == "__main__":
     print("Training subcellular localization models")
     for i in range(0, 5):
         print(f"Training model {i+1} / 5")
-        if not os.path.exists(os.path.join(model_attrs.save_path, f"{i}_1Layer.ckpt")):
+        modelname = ""
+        if not os.path.exists(os.path.join(model_attrs.save_path, f"{i}_1Layer_{data_code}_level{args.level}.ckpt")):
             train_model(model_attrs, datahandler, i, pos_weights)
     print("Finished training subcellular localization models")
 

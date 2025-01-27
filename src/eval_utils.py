@@ -57,6 +57,7 @@ def generate_sl_outputs(
         dataloader, data_df = datahandler.get_partition_dataloader_inner(outer_i)
         if not os.path.exists(os.path.join(model_attrs.outputs_save_path, f"inner_{outer_i}_{inner_i}.pkl")):
             path = f"{model_attrs.save_path}/{outer_i}_{inner_i}.ckpt"
+            print(f"loaded model: {path}")
             model = model_attrs.class_type.load_from_checkpoint(path, num_classes=model_attrs.num_classes,
                                                                       pos_weights=model_attrs.pos_weights).to(device).eval()
             pred_df = predict_sl_values(dataloader, model)
