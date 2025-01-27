@@ -77,7 +77,7 @@ def train_model(modelname:str, model_attrs: ModelAttributes, datahandler:Dataloa
 
     # Initialize trainer
     trainer = pl.Trainer(max_epochs=14, 
-                        default_root_dir=model_attrs.save_path + f"/{outer_i}_1Layer",
+                        default_root_dir=model_attrs.save_path + f"/{model_name}",
                         check_val_every_n_epoch = 1,
                         callbacks=[
                             checkpoint_callback, 
@@ -179,8 +179,8 @@ if __name__ == "__main__":
     print("Training subcellular localization models")
     for i in range(0, 5):
         print(f"Training model {i+1} / 5")
-        modelname = os.path.join(model_attrs.save_path, f"{i}_1Layer_{data_code}_level{args.level}.ckpt")
-        if not os.path.exists(modelname):
+        modelname = os.path.join(model_attrs.save_path, f"{i}_1Layer_{data_code}_level{args.level}")
+        if not os.path.exists(f"{modelname}.ckpt"):
             train_model(modelname, model_attrs, datahandler, i, pos_weights)
     print("Finished training subcellular localization models")
 
