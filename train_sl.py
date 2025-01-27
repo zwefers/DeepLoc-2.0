@@ -62,7 +62,7 @@ def train_model(modelname:str, model_attrs: ModelAttributes, datahandler:Dataloa
     checkpoint_callback = ModelCheckpoint(
         monitor='bce_loss',
         dirpath=model_attrs.save_path,
-        filename= modelname,
+        filename=  f"{i}_{modelname}",
         save_top_k=1,
         every_n_epochs=1,
         save_last=False,
@@ -77,7 +77,7 @@ def train_model(modelname:str, model_attrs: ModelAttributes, datahandler:Dataloa
 
     # Initialize trainer
     trainer = pl.Trainer(max_epochs=14, 
-                        default_root_dir=model_attrs.save_path + f"/{model_name}",
+                        default_root_dir=model_attrs.save_path + f"/{i}_{modelname}",
                         check_val_every_n_epoch = 1,
                         callbacks=[
                             checkpoint_callback, 
@@ -175,19 +175,17 @@ if __name__ == "__main__":
         metadata=data_df #zoe
     )
 
-
     print("Training subcellular localization models")
     for i in range(0, 5):
         print(f"Training model {i+1} / 5")
-        modelname = os.path.join(model_attrs.save_path, f"{i}_1Layer_{data_code}_level{args.level}")
-        if not os.path.exists(f"{modelname}.ckpt"):
+        modelname = f"1Layer_{data_code}_level{args.level}"
+        if not os.path.exists(os.path.join(model_attrs.save_path, f"{i}_{modelname}.ckpt")):
             train_model(modelname, model_attrs, datahandler, i, pos_weights)
     print("Finished training subcellular localization models")
 
     print("Using trained models to generate outputs for signal prediction training")
     generate_sl_outputs(model_attrs=model_attrs, datahandler=datahandler)
     print("Generated outputs! Can train sorting signal prediction now")
-
 
     print("Computing subcellular localization performance on swissprot CV dataset")
     calculate_sl_metrics(model_attrs=model_attrs, datahandler=datahandler)

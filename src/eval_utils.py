@@ -43,6 +43,7 @@ def predict_sl_values(dataloader, model):
     return output_df.merge(annot_df).merge(pool_df)
     
 def generate_sl_outputs(
+        modelname,
         model_attrs: ModelAttributes, 
         datahandler: DataloaderHandler,
         thresh_type="mcc", 
@@ -52,18 +53,18 @@ def generate_sl_outputs(
     num_classes=datahandler.num_classes
     threshold_dict = {}
         
-    for outer_i in range(5):
-        print("Generating output for ensemble model", outer_i)
-        dataloader, data_df = datahandler.get_partition_dataloader_inner(outer_i)
-        if not os.path.exists(os.path.join(model_attrs.outputs_save_path, f"inner_{outer_i}_{inner_i}.pkl")):
-            path = f"{model_attrs.save_path}/{outer_i}_{inner_i}.ckpt"
+    for i in range(5):
+        print("Generating output for ensemble model", i)
+        dataloader, data_df = datahandler.get_partition_dataloader_inner(i)
+        if not os.path.exists(os.path.join(model_attrs.outputs_save_path,f"{i}_{modelname}.pkl")):
+            path = f"{model_attrs.save_path}/{i}_{modelname}.ckpt"
             print(f"loaded model: {path}")
             model = model_attrs.class_type.load_from_checkpoint(path, num_classes=model_attrs.num_classes,
                                                                       pos_weights=model_attrs.pos_weights).to(device).eval()
             pred_df = predict_sl_values(dataloader, model)
-            pred_df.to_pickle(os.path.join(model_attrs.outputs_save_path, f"inner_{outer_i}_{inner_i}.pkl"))
+            pred_df.to_pickle(os.path.join(model_attrs.outputs_save_path, f"{i}_{modelname}.pkl"))
         else:
-            pred_df = pd.read_pickle(os.path.join(model_attrs.outputs_save_path, f"inner_{outer_i}_{inner_i}.pkl"))
+            pred_df = pd.read_pickle(os.path.join(model_attrs.outputs_save_path, f"{i}_{modelname}.pkl"))
 
         if thresh_type == "roc":
             thresholds = get_optimal_threshold(pred_df, data_df, num_classes)
@@ -71,14 +72,14 @@ def generate_sl_outputs(
             thresholds = get_optimal_threshold_pr(pred_df, data_df, num_classes)
         else:
             thresholds = get_optimal_threshold_mcc(pred_df, data_df, num_classes)
-        threshold_dict[f"{outer_i}_{inner_i}"] = thresholds
+        threshold_dict[f"{i}_{modelname}"] = thresholds
         
-        if not os.path.exists(os.path.join(model_attrs.outputs_save_path, f"{outer_i}_{inner_i}.pkl")):
-            dataloader, data_df = datahandler.get_partition_dataloader(outer_i)
+        if not os.path.exists(os.path.join(model_attrs.outputs_save_path, f"{i}_{modelname}.pkl")):
+            dataloader, data_df = datahandler.get_partition_dataloader(i)
             output_df = predict_sl_values(dataloader, model)
-            output_df.to_pickle(os.path.join(model_attrs.outputs_save_path, f"{outer_i}_{inner_i}.pkl"))
+            output_df.to_pickle(os.path.join(model_attrs.outputs_save_path, f"{i}_{modelname}.pkl"))
 
-    with open(os.path.join(model_attrs.outputs_save_path, f"thresholds_sl_{thresh_type}.pkl"), "wb") as f:
+    with open(os.path.join(model_attrs.outputs_save_path, f"{modelname}_thresholds_sl_{thresh_type}.pkl"), "wb") as f:
         pickle.dump(threshold_dict, f)
 
 def predict_ss_values(X, model):
