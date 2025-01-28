@@ -24,6 +24,8 @@ def load_config(config_path):
 
 def make_DL2_df(original_csv, level, categories):
     df = pd.read_csv(original_csv)
+    if "fold" not in df.columns:
+        df["fold"] = 0
     one_hot = []
     targets = []
     for locs in df[f"level{level}"].str.split(";").to_list():
@@ -115,20 +117,30 @@ if __name__ == "__main__":
         help="training data csv"
     )
 
+    parser.add_argument(
+        "-t","--test_dataset",
+        default="",
+        type=str,
+        help="test data csv"
+    )
+
     args = parser.parse_args()
 
-    CATEGORIES_YAML = load_config("data_files/seq2loc/level_classes.yaml")
-    categories = CATEGORIES_YAML[f"level{args.level}"]
-    data_codes = {"hpa_trainset.csv": "hpa",
-                  "uniprot_trainset.csv": "uniprot",
-                  "hpa_uniprot_combined_human_trainset.csv": "combined_human",
-                  "hpa_uniprot_combined_trainset.csv": "combined"}
+    
+
     if len(args.dataset) == 0:
         data_df=None
         data_code = "orig"
     else:
+        CATEGORIES_YAML = load_config("data_files/seq2loc/level_classes.yaml")
+        categories = CATEGORIES_YAML[f"level{args.level}"]
         data_df = make_DL2_df(args.dataset, args.level, categories)
+        data_codes = {"hpa_trainset.csv": "hpa",
+                  "uniprot_trainset.csv": "uniprot",
+                  "hpa_uniprot_combined_human_trainset.csv": "combined_human",
+                  "hpa_uniprot_combined_trainset.csv": "combined"}
         data_code = data_codes[args.dataset.split("/")[-1]]
+        
     
 
     level_numclasses = {0:11, 1:21, 2:10, 3:8}
@@ -176,16 +188,32 @@ if __name__ == "__main__":
     )
 
     print("Training subcellular localization models")
+    modelname = f"1Layer_{data_code}_level{args.level}"
     for i in range(0, 5):
         print(f"Training model {i+1} / 5")
-        modelname = f"1Layer_{data_code}_level{args.level}"
         if not os.path.exists(os.path.join(model_attrs.save_path, f"{i}_{modelname}.ckpt")):
             train_model(modelname, model_attrs, datahandler, i, pos_weights)
     print("Finished training subcellular localization models")
 
     print("Using trained models to generate outputs for signal prediction training")
-    generate_sl_outputs(model_attrs=model_attrs, datahandler=datahandler)
+    generate_sl_outputs(modelname, model_attrs=model_attrs, datahandler=datahandler)
     print("Generated outputs! Can train sorting signal prediction now")
+
+
+    if len(args.test_dataset) > 0:
+        test_df = make_DL2_df(args.test_dataset, args.level, categories)
+        test_df.Sequence = test_df.Sequence.apply(lambda seq: clip(seq, CLIP_LEN))
+        test_datahandler = DataloaderHandler(
+            clip_len=model_attrs.clip_len, 
+            alphabet=model_attrs.alphabet, 
+            embedding_file=model_attrs.embedding_file,
+            embed_len=model_attrs.embed_len,
+            num_classes=num_classes,
+            metadata=test_df #zoe
+        )
+        generate_sl_outputs(modelname, model_attrs=model_attrs, datahandler=datahandler, test=True)
+
+
 
     print("Computing subcellular localization performance on swissprot CV dataset")
     calculate_sl_metrics(model_attrs=model_attrs, datahandler=datahandler)

@@ -131,18 +131,25 @@ def calculate_sl_metrics_fold(test_df, thresholds):
     #    metrics_dict[f"{categories[1+i]}"] = roc_auc_score(y_subloc[:,i], predictions[:,i+1])
     return metrics_dict
 
-def calculate_sl_metrics(model_attrs: ModelAttributes, datahandler: DataloaderHandler, thresh_type="mcc", inner_i="1Layer"):
-    with open(os.path.join(model_attrs.outputs_save_path, f"thresholds_sl_{thresh_type}.pkl"), "rb") as f:
+def calculate_sl_metrics(modelname, model_attrs: ModelAttributes, datahandler: DataloaderHandler, thresh_type="mcc", inner_i="1Layer"):
+    with open(os.path.join(model_attrs.outputs_save_path, f"{modelname}_thresholds_sl_{thresh_type}.pkl"), "rb") as f:
         threshold_dict = pickle.load(f)
     print(np.array(list(threshold_dict.values())).mean(0))
     metrics_dict_list = {}
     full_data_df = []
-    for outer_i in range(5):
-        data_df = datahandler.get_partition(outer_i)
-        output_df = pd.read_pickle(os.path.join(model_attrs.outputs_save_path, f"{outer_i}_{inner_i}.pkl"))
+    for i in range(5):
+        if test:
+            j=1 #HOU_testset only has 1 fold
+        else:
+            j=i
+        data_df = datahandler.get_partition(i)
+        pred_savename = modelname
+        if test: 
+            pred_savename = f"{pred_savename}_test"
+        output_df = pd.read_pickle(os.path.join(model_attrs.outputs_save_path,f"{i}_{pred_savename}.pkl"))
         data_df = data_df.merge(output_df)
         full_data_df.append(data_df)
-        threshold = threshold_dict[f"{outer_i}_{inner_i}"]
+        threshold = threshold_dict[f"{i}_1Layer"]
         metrics_dict = calculate_sl_metrics_fold(data_df, threshold)
         for k in metrics_dict:
             metrics_dict_list.setdefault(k, []).append(metrics_dict[k])
