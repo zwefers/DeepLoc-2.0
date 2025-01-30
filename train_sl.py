@@ -131,6 +131,7 @@ if __name__ == "__main__":
     if len(args.dataset) == 0:
         data_df=None
         data_code = "orig"
+        categories=CATEGORIES
     else:
         CATEGORIES_YAML = load_config("data_files/seq2loc/level_classes.yaml")
         categories = CATEGORIES_YAML[f"level{args.level}"]
@@ -200,7 +201,7 @@ if __name__ == "__main__":
     print("Generated outputs! Can train sorting signal prediction now")
     
     print("Computing subcellular localization performance on swissprot CV dataset")
-    calculate_sl_metrics(modelname, model_attrs, datahandler=datahandler)
+    calculate_sl_metrics(modelname, model_attrs, datahandler=datahandler, categories=categories)
 
     if len(args.test_dataset) > 0:
         print(f"Testing {args.test_dataset}")
@@ -215,4 +216,4 @@ if __name__ == "__main__":
             metadata=test_df #zoe
         )
         generate_sl_outputs(modelname, model_attrs=model_attrs, datahandler=datahandler, test=True)
-        calculate_sl_metrics(modelname, model_attrs, datahandler=datahandler, test=True)
+        calculate_sl_metrics(modelname, model_attrs, datahandler=datahandler, test=True, categories=categories)

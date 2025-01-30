@@ -102,7 +102,7 @@ def get_optimal_threshold_mcc(output_df, data_df, num_classes):
 
     return optimal_thresholds
 
-def calculate_sl_metrics_fold(test_df, thresholds):
+def calculate_sl_metrics_fold(test_df, thresholds, categories=CATEGORIES):
     print("Computing fold")
     predictions = np.stack(test_df["preds"].to_numpy())
     outputs = predictions>thresholds
@@ -125,13 +125,13 @@ def calculate_sl_metrics_fold(test_df, thresholds):
     metrics_dict["MicroF1_subloc"] = f1_score(y_subloc, ypred_subloc, average="micro")
     metrics_dict["MacroF1_subloc"] = f1_score(y_subloc, ypred_subloc, average="macro")
     for i in range(10):
-      metrics_dict[f"{CATEGORIES[1+i]}"] = matthews_corrcoef(y_subloc[:,i], ypred_subloc[:,i])
+      metrics_dict[f"{categories[1+i]}"] = matthews_corrcoef(y_subloc[:,i], ypred_subloc[:,i])
 
     # for i in range(10):
     #    metrics_dict[f"{categories[1+i]}"] = roc_auc_score(y_subloc[:,i], predictions[:,i+1])
     return metrics_dict
 
-def calculate_sl_metrics(modelname, model_attrs: ModelAttributes, datahandler: DataloaderHandler, thresh_type="mcc", inner_i="1Layer", test=False):
+def calculate_sl_metrics(modelname, model_attrs: ModelAttributes, datahandler: DataloaderHandler, thresh_type="mcc", inner_i="1Layer", test=False, categories=CATEGORIES):
     with open(os.path.join(model_attrs.outputs_save_path, f"{modelname}_thresholds_sl_{thresh_type}.pkl"), "rb") as f:
         threshold_dict = pickle.load(f)
     print(np.array(list(threshold_dict.values())).mean(0))
@@ -148,7 +148,7 @@ def calculate_sl_metrics(modelname, model_attrs: ModelAttributes, datahandler: D
         output_df = pd.read_pickle(os.path.join(model_attrs.outputs_save_path,f"{i}_{pred_savename}_testout.pkl"))
         data_df = data_df.merge(output_df)
         threshold = threshold_dict[f"{i}_{modelname}"]
-        metrics_dict = calculate_sl_metrics_fold(data_df, threshold)
+        metrics_dict = calculate_sl_metrics_fold(data_df, threshold, categories=categories)
         for k in metrics_dict:
             metrics_dict_list.setdefault(k, []).append(metrics_dict[k])
 
