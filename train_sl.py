@@ -198,9 +198,12 @@ if __name__ == "__main__":
     print("Using trained models to generate outputs for signal prediction training")
     generate_sl_outputs(modelname, model_attrs=model_attrs, datahandler=datahandler)
     print("Generated outputs! Can train sorting signal prediction now")
-
+    
+    print("Computing subcellular localization performance on swissprot CV dataset")
+    calculate_sl_metrics(modelname, model_attrs, datahandler=datahandler)
 
     if len(args.test_dataset) > 0:
+        print(f"Testing {args.test_dataset}")
         test_df = make_DL2_df(args.test_dataset, args.level, categories)
         test_df.Sequence = test_df.Sequence.apply(lambda seq: clip(seq, CLIP_LEN))
         test_datahandler = DataloaderHandler(
@@ -212,8 +215,4 @@ if __name__ == "__main__":
             metadata=test_df #zoe
         )
         generate_sl_outputs(modelname, model_attrs=model_attrs, datahandler=datahandler, test=True)
-
-
-
-    print("Computing subcellular localization performance on swissprot CV dataset")
-    calculate_sl_metrics(model_attrs=model_attrs, datahandler=datahandler)
+        calculate_sl_metrics(modelname, model_attrs, datahandler=datahandler, test=True)

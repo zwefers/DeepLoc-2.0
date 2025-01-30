@@ -131,25 +131,23 @@ def calculate_sl_metrics_fold(test_df, thresholds):
     #    metrics_dict[f"{categories[1+i]}"] = roc_auc_score(y_subloc[:,i], predictions[:,i+1])
     return metrics_dict
 
-def calculate_sl_metrics(modelname, model_attrs: ModelAttributes, datahandler: DataloaderHandler, thresh_type="mcc", inner_i="1Layer"):
+def calculate_sl_metrics(modelname, model_attrs: ModelAttributes, datahandler: DataloaderHandler, thresh_type="mcc", inner_i="1Layer", test=False):
     with open(os.path.join(model_attrs.outputs_save_path, f"{modelname}_thresholds_sl_{thresh_type}.pkl"), "rb") as f:
         threshold_dict = pickle.load(f)
     print(np.array(list(threshold_dict.values())).mean(0))
     metrics_dict_list = {}
-    full_data_df = []
     for i in range(5):
         if test:
-            j=1 #HOU_testset only has 1 fold
+            j=0 #HOU_testset only has 1 fold
         else:
             j=i
-        data_df = datahandler.get_partition(i)
+        data_df = datahandler.get_partition(j)
         pred_savename = modelname
         if test: 
-            pred_savename = f"{pred_savename}_test"
-        output_df = pd.read_pickle(os.path.join(model_attrs.outputs_save_path,f"{i}_{pred_savename}.pkl"))
+            pred_savename = f"{pred_savename}_hou"
+        output_df = pd.read_pickle(os.path.join(model_attrs.outputs_save_path,f"{i}_{pred_savename}_testout.pkl"))
         data_df = data_df.merge(output_df)
-        full_data_df.append(data_df)
-        threshold = threshold_dict[f"{i}_1Layer"]
+        threshold = threshold_dict[f"{i}_{modelname}"]
         metrics_dict = calculate_sl_metrics_fold(data_df, threshold)
         for k in metrics_dict:
             metrics_dict_list.setdefault(k, []).append(metrics_dict[k])
@@ -158,11 +156,11 @@ def calculate_sl_metrics(modelname, model_attrs: ModelAttributes, datahandler: D
     for k in metrics_dict_list:
         output_dict[k] = [f"{round(np.array(metrics_dict_list[k]).mean(), 2):.2f} pm {round(np.array(metrics_dict_list[k]).std(), 2):.2f}"]
 
-    print(pd.DataFrame(output_dict).to_latex())
-    for k in metrics_dict_list:
-        print("{0:21s} : {1}".format(k, f"{round(np.array(metrics_dict_list[k]).mean(), 2):.2f} + {round(np.array(metrics_dict_list[k]).std(), 2):.2f}"))
-    for k in metrics_dict_list:
-        print("{0}".format(f"{round(np.array(metrics_dict_list[k]).mean(), 2):.2f} + {round(np.array(metrics_dict_list[k]).std(), 2):.2f}"))
+    #print(pd.DataFrame(output_dict).to_latex())
+    #for k in metrics_dict_list:
+        #print("{0:21s} : {1}".format(k, f"{round(np.array(metrics_dict_list[k]).mean(), 2):.2f} + {round(np.array(metrics_dict_list[k]).std(), 2):.2f}"))
+    #for k in metrics_dict_list:
+        #print("{0}".format(f"{round(np.array(metrics_dict_list[k]).mean(), 2):.2f} + {round(np.array(metrics_dict_list[k]).std(), 2):.2f}"))
 
 
 def calculate_ss_metrics_fold(y_test, y_test_preds, thresh):
