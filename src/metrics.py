@@ -124,8 +124,10 @@ def calculate_sl_metrics_fold(test_df, thresholds, categories=CATEGORIES):
     metrics_dict["Jaccard_subloc"] = jaccard_score(y_subloc, ypred_subloc, average="samples")
     metrics_dict["MicroF1_subloc"] = f1_score(y_subloc, ypred_subloc, average="micro")
     metrics_dict["MacroF1_subloc"] = f1_score(y_subloc, ypred_subloc, average="macro")
-    for i in range(10):
-      metrics_dict[f"{categories[1+i]}"] = matthews_corrcoef(y_subloc[:,i], ypred_subloc[:,i])
+    print(categories)
+    print(len(categories))
+    for i in range(len(categories)):
+      metrics_dict[f"{categories[i]}"] = matthews_corrcoef(y_subloc[:,i], ypred_subloc[:,i])
 
     # for i in range(10):
     #    metrics_dict[f"{categories[1+i]}"] = roc_auc_score(y_subloc[:,i], predictions[:,i+1])
@@ -156,11 +158,11 @@ def calculate_sl_metrics(modelname, model_attrs: ModelAttributes, datahandler: D
     for k in metrics_dict_list:
         output_dict[k] = [f"{round(np.array(metrics_dict_list[k]).mean(), 2):.2f} pm {round(np.array(metrics_dict_list[k]).std(), 2):.2f}"]
 
-    #print(pd.DataFrame(output_dict).to_latex())
-    #for k in metrics_dict_list:
-        #print("{0:21s} : {1}".format(k, f"{round(np.array(metrics_dict_list[k]).mean(), 2):.2f} + {round(np.array(metrics_dict_list[k]).std(), 2):.2f}"))
-    #for k in metrics_dict_list:
-        #print("{0}".format(f"{round(np.array(metrics_dict_list[k]).mean(), 2):.2f} + {round(np.array(metrics_dict_list[k]).std(), 2):.2f}"))
+    print(pd.DataFrame(output_dict).to_latex())
+    for k in metrics_dict_list:
+        print("{0:21s} : {1}".format(k, f"{round(np.array(metrics_dict_list[k]).mean(), 2):.2f} + {round(np.array(metrics_dict_list[k]).std(), 2):.2f}"))
+    for k in metrics_dict_list:
+        print("{0}".format(f"{round(np.array(metrics_dict_list[k]).mean(), 2):.2f} + {round(np.array(metrics_dict_list[k]).std(), 2):.2f}"))
 
 
 def calculate_ss_metrics_fold(y_test, y_test_preds, thresh):

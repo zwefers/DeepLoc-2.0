@@ -22,10 +22,24 @@ def load_config(config_path):
         config = yaml.safe_load(file)
     return config
 
-def make_DL2_df(original_csv, level, categories):
+def make_DL2_df(original_csv, level, categories, clip_len):
+    
+    def clip_middle_np(x):
+        if isinstance(x, np.ndarray) and len(x)>clip_len:
+            x = np.concatenate((x[:clip_len//2],x[-clip_len//2:]), axis=0)
+        return x
+    def clip_middle(x):
+        if type(x)==str  and len(x)>clip_len:
+            x = x[:clip_len//2] + x[-clip_len//2:]
+        return x
+    def s_to_np(s):
+        if type(s) == str:
+            s = np.array([float(i) for i in s], dtype=np.float64)
+        return s
+    
     df = pd.read_csv(original_csv)
-    if "fold" not in df.columns:
-        df["fold"] = 0
+    
+    #Get target locations
     one_hot = []
     targets = []
     for locs in df[f"level{level}"].str.split(";").to_list():
@@ -34,11 +48,16 @@ def make_DL2_df(original_csv, level, categories):
         targets.append(temp)
     one_hot = np.array(one_hot)
     DL2_df = pd.DataFrame(one_hot, columns=categories)
+    
+    #Sequence column
     if "sequence" in df.columns:
         DL2_df["Sequence"] = df["sequence"]
     elif "Sequence" in df.columns:
         DL2_df["Sequence"] = df["Sequence"]
     else: Exception("No seq col in dataframe")
+    DL2_df["Sequence"] = DL2_df["Sequence"].apply(clip_middle)
+    
+    #ID column
     if "ensembl_ids" in df.columns:
         acc = "ensembl_ids"
     elif "id" in df.columns:
@@ -48,13 +67,18 @@ def make_DL2_df(original_csv, level, categories):
     else: raise Exception("No id col in dataframe")
     DL2_df.insert(0,'ACC','')
     DL2_df["ACC"] = df[acc] 
-    DL2_df["Partition"] = df["fold"] 
-    DL2_df["Target"] = targets
-    DL2_df["ANNOT"] = pd.NA
-    DL2_df["Types"] = pd.NA
-    DL2_df["TargetAnnot"] = 0
-    return DL2_df
 
+    DL2_df["Partition"] = df["fold"] 
+    if "fold" not in df.columns:
+        df["fold"] = 0
+
+    #Sorting Signals
+    DL2_df["Target"] = targets
+    DL2_df["ANNOT"] = df["ANNOT"].apply(s_to_np)
+    DL2_df["Types"] = df["Types"]
+    DL2_df["TargetAnnot"] = DL2_df["ANNOT"].apply(clip_middle_np)
+    
+    return DL2_df
 
 
 def train_model(modelname:str, model_attrs: ModelAttributes, datahandler:DataloaderHandler, outer_i: int, pos_weights: torch.tensor):
@@ -124,6 +148,13 @@ if __name__ == "__main__":
         help="test data csv"
     )
 
+    parser.add_argument(
+        "-c","--clip_len",
+        default=4000,
+        type=int,
+        help="sequence length to use"
+    )
+
     args = parser.parse_args()
 
     
@@ -135,9 +166,10 @@ if __name__ == "__main__":
     else:
         CATEGORIES_YAML = load_config("data_files/seq2loc/level_classes.yaml")
         categories = CATEGORIES_YAML[f"level{args.level}"]
-        data_df = make_DL2_df(args.dataset, args.level, categories)
+        data_df = make_DL2_df(args.dataset, args.level, categories, args.clip_len)
         data_codes = {"hpa_trainset.csv": "hpa",
                   "uniprot_trainset.csv": "uniprot",
+                  "uniprot_trainset_wsortsigs.csv": "uni_sortsig",
                   "hpa_uniprot_combined_human_trainset.csv": "combined_human",
                   "hpa_uniprot_combined_trainset.csv": "combined"}
         data_code = data_codes[args.dataset.split("/")[-1]]
@@ -150,8 +182,6 @@ if __name__ == "__main__":
         data_df=None
 
 
-    #TODO: Let the clip_len be variable
-    CLIP_LEN=4000
     def clip(seq, clip_len):
         assert clip_len % 2 == 0
         if len(seq) > clip_len:
@@ -159,7 +189,7 @@ if __name__ == "__main__":
         return seq
     #CLIP sequences in metadata
     if data_df is not None:
-        data_df.Sequence = data_df.Sequence.apply(lambda seq: clip(seq, CLIP_LEN))
+        data_df.Sequence = data_df.Sequence.apply(lambda seq: clip(seq, args.clip_len))
     
     
     #SET pos_weights
@@ -206,7 +236,7 @@ if __name__ == "__main__":
     if len(args.test_dataset) > 0:
         print(f"Testing {args.test_dataset}")
         test_df = make_DL2_df(args.test_dataset, args.level, categories)
-        test_df.Sequence = test_df.Sequence.apply(lambda seq: clip(seq, CLIP_LEN))
+        test_df.Sequence = test_df.Sequence.apply(lambda seq: clip(seq, args.clip_len))
         test_datahandler = DataloaderHandler(
             clip_len=model_attrs.clip_len, 
             alphabet=model_attrs.alphabet, 
