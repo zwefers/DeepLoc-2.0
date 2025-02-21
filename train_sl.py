@@ -67,16 +67,21 @@ def make_DL2_df(original_csv, level, categories, clip_len):
     else: raise Exception("No id col in dataframe")
     DL2_df.insert(0,'ACC','')
     DL2_df["ACC"] = df[acc] 
-
-    DL2_df["Partition"] = df["fold"] 
+ 
     if "fold" not in df.columns:
         df["fold"] = 0
+    DL2_df["Partition"] = df["fold"]
 
     #Sorting Signals
-    DL2_df["Target"] = targets
-    DL2_df["ANNOT"] = df["ANNOT"].apply(s_to_np)
-    DL2_df["Types"] = df["Types"]
-    DL2_df["TargetAnnot"] = DL2_df["ANNOT"].apply(clip_middle_np)
+    if "ANNOT" in df.columns and "Types" in df.columns:
+        DL2_df["Target"] = targets
+        DL2_df["ANNOT"] = df["ANNOT"].apply(s_to_np)
+        DL2_df["Types"] = df["Types"]
+        DL2_df["TargetAnnot"] = DL2_df["ANNOT"].apply(clip_middle_np)
+    else:
+         DL2_df["Target"] = targets
+         DL2_df["ANNOT"] = [np.zeros(len(s), dtype=np.float64) for s in DL2_df["Sequence"]]
+         DL2_df["TargetAnnot"] = DL2_df["ANNOT"]
     
     return DL2_df
 
@@ -121,7 +126,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-m","--model", 
         default="Fast",
-        choices=['Accurate', 'Fast', 'seq2loc'],
+        choices=['Accurate', 'Fast', 'seq2loc', 'seq2loc-ems1'],
         type=str,
         help="Model to use."
     )
@@ -164,7 +169,7 @@ if __name__ == "__main__":
         data_code = "orig"
         categories=CATEGORIES
     else:
-        CATEGORIES_YAML = load_config("data_files/seq2loc/level_classes.yaml")
+        CATEGORIES_YAML = load_config("/hai/scratch/zwefers/seq2loc/deeploc2/data_files/seq2loc/level_classes.yaml")
         categories = CATEGORIES_YAML[f"level{args.level}"]
         data_df = make_DL2_df(args.dataset, args.level, categories, args.clip_len)
         data_codes = {"hpa_trainset.csv": "hpa",
@@ -188,8 +193,8 @@ if __name__ == "__main__":
             seq = seq[ : clip_len//2] + seq[-clip_len//2 : ]
         return seq
     #CLIP sequences in metadata
-    if data_df is not None:
-        data_df.Sequence = data_df.Sequence.apply(lambda seq: clip(seq, args.clip_len))
+    #if data_df is not None:
+        #data_df.Sequence = data_df.Sequence.apply(lambda seq: clip(seq, args.clip_len))
     
     
     #SET pos_weights
@@ -224,19 +229,19 @@ if __name__ == "__main__":
         print(f"Training model {i+1} / 5")
         if not os.path.exists(os.path.join(model_attrs.save_path, f"{i}_{modelname}.ckpt")):
             train_model(modelname, model_attrs, datahandler, i, pos_weights)
+        else:
+            print("Model already trained")
     print("Finished training subcellular localization models")
 
-    print("Using trained models to generate outputs for signal prediction training")
+    print("Using trained models to generate outputs")
     generate_sl_outputs(modelname, model_attrs=model_attrs, datahandler=datahandler)
-    print("Generated outputs! Can train sorting signal prediction now")
-    
-    print("Computing subcellular localization performance on swissprot CV dataset")
-    calculate_sl_metrics(modelname, model_attrs, datahandler=datahandler, categories=categories)
+    #calculate_sl_metrics(modelname, model_attrs, datahandler=datahandler, categories=categories)
 
     if len(args.test_dataset) > 0:
-        print(f"Testing {args.test_dataset}")
-        test_df = make_DL2_df(args.test_dataset, args.level, categories)
-        test_df.Sequence = test_df.Sequence.apply(lambda seq: clip(seq, args.clip_len))
+        print(f"Testing on {args.test_dataset}")
+        test_df = make_DL2_df(args.test_dataset, args.level, categories, args.clip_len)
+        print(test_df.columns)
+        #test_df.Sequence = test_df.Sequence.apply(lambda seq: clip(seq, args.clip_len))
         test_datahandler = DataloaderHandler(
             clip_len=model_attrs.clip_len, 
             alphabet=model_attrs.alphabet, 
@@ -245,5 +250,5 @@ if __name__ == "__main__":
             num_classes=num_classes,
             metadata=test_df #zoe
         )
-        generate_sl_outputs(modelname, model_attrs=model_attrs, datahandler=datahandler, test=True)
-        calculate_sl_metrics(modelname, model_attrs, datahandler=datahandler, test=True, categories=categories)
+        generate_sl_outputs(modelname, model_attrs=model_attrs, datahandler=test_datahandler, test=True)
+        #calculate_sl_metrics(modelname, model_attrs, datahandler=test_datahandler, test=True, categories=categories)

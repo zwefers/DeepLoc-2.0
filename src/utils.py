@@ -46,8 +46,8 @@ def get_train_model_attributes(model_type, num_classes, pos_weights=None):
             ESM1bFrozen,
             alphabet,
             EMBEDDINGS[FAST]["embeds"],
-            "models/models_esm1b",
-            "outputs/esm1b/",
+            "/hai/scratch/zwefers/seq2loc/deeploc2/models/models_esm1b",
+            "/hai/scratch/zwefers/seq2loc/deeploc2/outputs/esm1b/",
             1022,
             1280,
             num_classes,
@@ -61,8 +61,8 @@ def get_train_model_attributes(model_type, num_classes, pos_weights=None):
             ProtT5Frozen,
             alphabet,
             EMBEDDINGS[ACCURATE]["embeds"],            
-            "models/models_prott5",
-            "outputs/prott5/",
+            "/hai/scratch/zwefers/seq2loc/deeploc2/models/models_prott5",
+            "/hai/scratch/zwefers/seq2loc/deeploc2/outputs/prott5/",
             4000,
             1024,
             num_classes,
@@ -76,14 +76,30 @@ def get_train_model_attributes(model_type, num_classes, pos_weights=None):
             ProtT5Frozen,
             alphabet,
             EMBEDDINGS[SEQ2LOC]["embeds"],            
-            "models/seq2locbench",
-            "outputs/seq2locbench/",
+            "/hai/scratch/zwefers/seq2loc/deeploc2/models/seq2locbench/prott5/",
+            "/hai/scratch/zwefers/seq2loc/deeploc2/outputs/seq2locbench/prott5/",
             4000,
             1024,
             num_classes,
             pos_weights
         )
+    elif model_type == SEQ2LOC_ESM1:
+        with open("models/ESM1b_alphabet.pkl", "rb") as f:
+            alphabet = pickle.load(f)
+        return ModelAttributes(
+                model_type,
+                ESM1bFrozen,
+                alphabet,
+                EMBEDDINGS[SEQ2LOC_ESM1]["embeds"],
+                "/hai/scratch/zwefers/seq2loc/deeploc2/models/seq2locbench/esm1/",
+                "/hai/scratch/zwefers/seq2loc/deeploc2/outputs/seq2locbench/esm1/",
+                1022,
+                1280,
+                num_classes,
+                pos_weights
+        )
     else:
-        raise Exception("wrong model type provided expected Fast,Accurate got", model_type)
+        print(SEQ2LOC_ESM1)
+        raise Exception("wrong model type provided expected Fast,Accurate,seq2loc,seq2loc_esm got", model_type)
     
 

@@ -5,6 +5,7 @@ SS_CATEGORIES = ["NULL", "SP", "TM", "MT", "CH", "TH", "NLS", "NES", "PTS", "GPI
 FAST = "Fast"
 ACCURATE = "Accurate"
 SEQ2LOC = "seq2loc"
+SEQ2LOC_ESM1 = "seq2loc-ems1"
 
 EMBEDDINGS = {
     FAST: {
@@ -19,8 +20,13 @@ EMBEDDINGS = {
     },
     SEQ2LOC: {
         "embeds": "/hai/scratch/zwefers/embeddings/ProtT5-4k.h5", #zoe
-        "config": "swissprot_prott5.yaml",
-        "source_fasta": "" #not use anymor
+        "config": "",
+        "source_fasta": "" #not use anymore
+    },
+    SEQ2LOC_ESM1: {
+        "embeds": "/hai/scratch/zwefers/embeddings/ESM1.h5", #zoe
+        "config": "",
+        "source_fasta": "" #not use anymore
     }
 }
 
