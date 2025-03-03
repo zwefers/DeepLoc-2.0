@@ -46,8 +46,8 @@ def get_train_model_attributes(model_type, num_classes, pos_weights=None):
             ESM1bFrozen,
             alphabet,
             EMBEDDINGS[FAST]["embeds"],
-            "/hai/scratch/zwefers/seq2loc/deeploc2/models/models_esm1b",
-            "/hai/scratch/zwefers/seq2loc/deeploc2/outputs/esm1b/",
+            "models/models_esm1b",
+            "outputs/esm1b/",
             1022,
             1280,
             num_classes,
@@ -61,23 +61,23 @@ def get_train_model_attributes(model_type, num_classes, pos_weights=None):
             ProtT5Frozen,
             alphabet,
             EMBEDDINGS[ACCURATE]["embeds"],            
-            "/hai/scratch/zwefers/seq2loc/deeploc2/models/models_prott5",
-            "/hai/scratch/zwefers/seq2loc/deeploc2/outputs/prott5/",
+            "models/models_prott5",
+            "outputs/prott5/",
             4000,
             1024,
             num_classes,
             torch.tensor([1,1,1,3,2.3,4,9.5,4.5,6.6,7.7,32])
         )
-    elif model_type == SEQ2LOC:
+    elif model_type == SEQ2LOC_PROTT5:
         alphabet = T5Tokenizer.from_pretrained("Rostlab/prot_t5_xl_uniref50", do_lower_case=False )
         
         return ModelAttributes(
             model_type,
             ProtT5Frozen,
             alphabet,
-            EMBEDDINGS[SEQ2LOC]["embeds"],            
-            "/hai/scratch/zwefers/seq2loc/deeploc2/models/seq2locbench/prott5/",
-            "/hai/scratch/zwefers/seq2loc/deeploc2/outputs/seq2locbench/prott5/",
+            EMBEDDINGS[SEQ2LOC_PROTT5]["embeds"],            
+            "models/seq2locbench/prott5/",
+            "outputs/seq2locbench/prott5/",
             4000,
             1024,
             num_classes,
@@ -91,8 +91,8 @@ def get_train_model_attributes(model_type, num_classes, pos_weights=None):
                 ESM1bFrozen,
                 alphabet,
                 EMBEDDINGS[SEQ2LOC_ESM1]["embeds"],
-                "/hai/scratch/zwefers/seq2loc/deeploc2/models/seq2locbench/esm1/",
-                "/hai/scratch/zwefers/seq2loc/deeploc2/outputs/seq2locbench/esm1/",
+                "models/seq2locbench/esm1/",
+                "outputs/seq2locbench/esm1/",
                 1022,
                 1280,
                 num_classes,
