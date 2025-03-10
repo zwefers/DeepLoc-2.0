@@ -119,11 +119,7 @@ def make_DL2_df(df, level, categories, clip_len):
     DL2_df["Sequence"] = DL2_df["Sequence"].apply(clip_middle)
     
     #ID column
-    if "ensembl_ids" in df.columns:
-        acc = "ensembl_ids"
-    elif "id" in df.columns:
-        acc = "id"
-    elif "uniprot_id" in df.columns:
+    if "uniprot_id" in df.columns:
         acc = "uniprot_id"
     else: raise Exception("No id col in dataframe")
     DL2_df.insert(0,'ACC','')
