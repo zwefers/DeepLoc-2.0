@@ -256,7 +256,7 @@ if __name__ == "__main__":
         data_code = data_codes[args.dataset.split("/")[-1]]
 
 
-    level_numclasses = {0:11, 1:21, 2:10, 3:8}
+    level_numclasses = {0:11, 1:22, 2:10, 3:8}
     num_classes = level_numclasses[args.level]
 
 
