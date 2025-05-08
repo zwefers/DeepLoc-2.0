@@ -79,6 +79,7 @@ def roc_auc_wrap(y_true, y_pred):
     return rocauc, rocauc_macro, rocauc_micro
 
 def thresh_wrap(y_pred, thresholds):
+    #Note: Decided to actually NOT use this function, 98-99% of sample have at least 1 predicted label 
     #Handles case where no localization category passes threshold
     max_idx = y_pred.argmax(axis=1)
     y_pred_bin = (y_pred > thresholds)
@@ -94,8 +95,7 @@ def all_metrics(y_true, y_pred, y_pred_bin=None, thresholds=None, continuous=Tru
             if thresholds is None:
                 thresholds = [get_best_threshold_mcc(y_true[:, i], y_pred[:, i]) for i in range(y_true.shape[1])]
                 thresholds = np.array(thresholds)
-                print(thresholds)
-            y_pred_bin = thresh_wrap(y_pred, thresholds)
+            y_pred_bin = (y_pred > thresholds).astype(np.int16)
         macro_ap = average_precision_score(y_true, y_pred, average="macro") #continuous
         micro_ap = average_precision_score(y_true, y_pred, average="micro") #continuous
         rocauc_perclass, rocauc_macro, rocauc_micro = roc_auc_wrap(y_true, y_pred) #continuous
