@@ -37,7 +37,14 @@ class ModelAttributes:
         self.pos_weights=pos_weights
         
 
-def get_train_model_attributes(model_type, num_classes, pos_weights=None):
+def get_train_model_attributes(
+        model_type, 
+        num_classes, 
+        pos_weights=None,
+        embeddings_path=None,
+        model_save_path=None,
+        outputs_save_path=None
+        ):
     if model_type == FAST:
         with open("models/ESM1b_alphabet.pkl", "rb") as f:
             alphabet = pickle.load(f)
@@ -71,13 +78,17 @@ def get_train_model_attributes(model_type, num_classes, pos_weights=None):
     elif model_type == SEQ2LOC_PROTT5:
         alphabet = T5Tokenizer.from_pretrained("Rostlab/prot_t5_xl_uniref50", do_lower_case=False )
         
+        assert embeddings_path is not None, "embedding_path must be provided for SEQ2LOC_PROTT5"
+        assert model_save_path is not None, "model_save_path must be provided for SEQ2LOC_PROTT5"
+        assert outputs_save_path is not None, "output_save_path must be provided for SEQ2LOC_PROTT5"
+        
         return ModelAttributes(
             model_type,
             ProtT5Frozen,
             alphabet,
-            EMBEDDINGS[SEQ2LOC_PROTT5]["embeds"],            
-            "models/seq2locbench/prott5/",
-            "outputs/seq2locbench/prott5/",
+            embeddings_path,
+            model_save_path,
+            outputs_save_path,
             4000,
             1024,
             num_classes,
@@ -86,13 +97,18 @@ def get_train_model_attributes(model_type, num_classes, pos_weights=None):
     elif model_type == SEQ2LOC_ESM1:
         with open("models/ESM1b_alphabet.pkl", "rb") as f:
             alphabet = pickle.load(f)
+
+        assert embeddings_path is not None, "embedding_path must be provided for SEQ2LOC_ESM1"
+        assert model_save_path is not None, "model_save_path must be provided for SEQ2LOC_ESM1"
+        assert outputs_save_path is not None, "output_save_path must be provided for SEQ2LOC_ESM1"
+
         return ModelAttributes(
                 model_type,
                 ESM1bFrozen,
                 alphabet,
-                EMBEDDINGS[SEQ2LOC_ESM1]["embeds"],
-                "models/seq2locbench/esm1/",
-                "outputs/seq2locbench/esm1/",
+                embeddings_path,
+                model_save_path,
+                outputs_save_path,
                 1022,
                 1280,
                 num_classes,

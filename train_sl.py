@@ -228,6 +228,26 @@ if __name__ == "__main__":
         help="file to define categories for each level"
     )
 
+    parser.add_argument(
+        '--embeddings_path', 
+        type=str, 
+        default=None, 
+        help='Path to embeddings h5 file'
+    )
+
+    parser.add_argument(
+        '--model_save_path', 
+        type=str, 
+        default=None, 
+        help='Directory to save model checkpoints'
+    )
+    parser.add_argument(
+        '--outputs_save_path', 
+        type=str, 
+        default=None, 
+        help='Directory to save prediction outputs'
+    )
+
     args = parser.parse_args()
 
     
@@ -276,7 +296,14 @@ if __name__ == "__main__":
             ).mean(axis=0)+ 1e-5)
 
     model_attrs = get_train_model_attributes(
-        model_type=args.model, num_classes=num_classes, pos_weights=pos_weights)
+        model_type=args.model, 
+        num_classes=num_classes, 
+        pos_weights=pos_weights,
+        embeddings_path=args.embeddings_path,
+        model_save_path=args.model_save_path,
+        outputs_save_path=args.outputs_save_path
+    )
+    
     if not os.path.exists(model_attrs.embedding_file):
         print("Embeddings not found, generating......")
         generate_embeddings(model_attrs)
@@ -288,7 +315,7 @@ if __name__ == "__main__":
         raise Exception(
             "Embeddings could not be created. Verify that data_files/embeddings/<MODEL_DATASET> is deleted"
             )
-    
+
     datahandler = DataloaderHandler(
         clip_len=model_attrs.clip_len, 
         alphabet=model_attrs.alphabet, 
