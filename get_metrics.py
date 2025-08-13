@@ -24,8 +24,7 @@ def main(args):
 
 
     #Break up test set in multilocalizing and single localizing proteins for later analysis
-    
-    #These lables are hierarchical but do not count as true multilocalization
+    #These labels are hierarchical but do not count as true multilocalization
     implicitly_multi = [
         "actin-filaments",
         "intermediate-filaments",
@@ -124,7 +123,7 @@ def main(args):
 
 
             labels = np.array(categories_yaml[f"level{level}"])
-            predicted_labels = [set(labels[np.where(pred==1)[0]]) for pred in test_preds]
+            #predicted_labels = [set(labels[np.where(pred==1)[0]]) for pred in test_preds]
 
             #Cut out empty categories in testset like plastid
             idxs = np.where(test_targets.sum(axis=0) != 0)[0]
@@ -150,13 +149,6 @@ def main(args):
         val_avg_df.to_csv(f"{outdir}/val_metrics_avg{tag}.csv", index=False)
         test_metrics_avg_df = pd.concat(test_metrics_avg_df)
         test_metrics_avg_df.to_csv(f"{outdir}/test_metrics_avg{tag}.csv", index=False)
-
-    # ... Insert your metrics calculation code here ...
-    # For example:
-    # results = calculate_metrics(testset, trainset, categories_yaml)
-    # Save results to outdir
-    # os.makedirs(args.outdir, exist_ok=True)
-    # results.to_csv(os.path.join(args.outdir, "metrics.csv"), index=False)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Calculate metrics from testset and trainset.")

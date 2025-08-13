@@ -202,14 +202,14 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "-d","--dataset",
-        default="",
+        required=True,
         type=str,
         help="training data csv"
     )
 
     parser.add_argument(
         "-t","--test_dataset",
-        default="",
+        required=True,
         type=str,
         help="test data csv"
     )
@@ -223,28 +223,28 @@ if __name__ == "__main__":
     
     parser.add_argument(
         "-y","--classes_yaml",
-        default="/hai/scratch/zwefers/seq2loc/deeploc2/data_files/seq2loc/level_classes.yaml",
+        required=True,
         type=str,
         help="file to define categories for each level"
     )
 
     parser.add_argument(
         '--embeddings_path', 
-        type=str, 
-        default=None, 
+        type=str,
+        required=True, 
         help='Path to embeddings h5 file'
     )
 
     parser.add_argument(
         '--model_save_path', 
-        type=str, 
-        default=None, 
+        type=str,
+        required=True, 
         help='Directory to save model checkpoints'
     )
     parser.add_argument(
         '--outputs_save_path', 
-        type=str, 
-        default=None, 
+        type=str,
+        required=True,
         help='Directory to save prediction outputs'
     )
 
